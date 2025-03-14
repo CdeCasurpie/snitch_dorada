@@ -23,6 +23,22 @@
             height: 40px;
             transform: translate(-50%, -50%);
             z-index: 10;
+            animation: snitchunGrow 3s ease-out;
+        }
+
+        @keyframes snitchunGrow {
+            0% {
+                transform: translate(-50%, -50%) scale(3);
+            }
+            60% {
+                transform: translate(-50%, -50%) scale(6);
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
         }
 
         #snitch {
@@ -157,10 +173,10 @@
         const mouseDetectionRadius = 200;
         
         // Variables de estado
-        let snitchX = window.innerWidth / 2;
-        let snitchY = window.innerHeight / 2;
-        let targetX = snitchX;
-        let targetY = snitchY;
+        let snitchX = window.innerWidth / 2 - window.innerWidth / 2;
+        let snitchY = window.innerHeight / 2 - window.innerHeight / 2;
+        let targetX = window.innerWidth / 2;
+        let targetY = window.innerHeight / 2;
         let velocityX = 0;
         let velocityY = 0;
         let mouseX = 0;
