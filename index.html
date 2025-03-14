@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snitch Dorada de Harry Potter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #161b20;
+            cursor: pointer;
+            user-select: none;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #snitch-container {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        #snitch {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle at 30% 30%, #ffed9d, #dfc533 40%, #a37707 85%);
+            border-radius: 50%;
+            animation: glow 2s infinite alternate;
+            z-index: 2;
+        }
+
+        .wing {
+            position: absolute;
+            top: 50%;
+            transform-origin: 0 50%;
+            width: 50px;
+            height: 6px;
+            background: rgba(255, 245, 188, 0.7);
+            z-index: 1;
+        }
+
+        .wing-left {
+            left: 1px;
+            top: 10px;
+            border-radius: 100% 50% 50% 100% / 100%;
+            transform: rotate(180deg);
+            animation: flutter-left 0.01s infinite alternate;
+        }
+
+        .wing-right {
+            left: 20px;
+            top: 10px;
+            border-radius: 100% 50% 50% 100% / 100%;
+            animation: flutter-right 0.001s infinite alternate;
+        }
+
+
+        @keyframes flutter-left {
+            0% { transform: translateY(-50%) rotate(250deg); }
+            100% { transform: translateY(-50%) rotate(160deg); }
+        }
+
+
+        @keyframes flutter-right {
+            0% { transform: translateY(-50%) rotate(-60deg); }
+            100% { transform: translateY(-50%) rotate(20deg); }
+        }
+            
+
+        .trail {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            filter: drop-shadow(0 0 10px rgba(255, 217, 0, 0.6));
+            background: rgba(255, 217, 0, 0.336);
+            z-index: 1;
+            transition: opacity 0.8s;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 10px 5px rgba(255, 215, 0, 0.3); }
+            100% { box-shadow: 0 0 50px 8px rgba(255, 215, 0, 0.8); }
+        }
+
+        #message {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            opacity: 0.8;
+        }
+
+        #score {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: gold;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            text-shadow: 1px 1px 3px #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="snitch-container">
+        <div id="snitch"></div>
+        <div class="wing wing-left"></div>
+        <div class="wing wing-right"></div>
+    </div>
+    <div id="message">¡Intenta atrapar la Snitch dorada! (Haz clic cerca de ella)</div>
+
+    <script>
+        // Configuración
+        const snitchContainer = document.getElementById('snitch-container');
+        const snitch = document.getElementById('snitch');
+        const scoreElement = document.getElementById('score');
+        const maxSpeed = 120;
+        const normalSpeed = 15;
+        const escapeSpeed = 26;
+        const escapeDistance = 200;
+        const mouseDetectionRadius = 200;
+        
+        // Variables de estado
+        let snitchX = window.innerWidth / 2;
+        let snitchY = window.innerHeight / 2;
+        let targetX = snitchX;
+        let targetY = snitchY;
+        let velocityX = 0;
+        let velocityY = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let escaping = false;
+        let attempts = 0;
+        let trailElements = [];
+        let catched = false;
+        
+        // Inicialización
+        updateSnitchPosition();
+        createNewTarget();
+        
+        // Seguimiento del ratón
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            const distance = getDistanceToMouse();
+            
+            // Si el ratón está demasiado cerca, esquivar
+            if (distance < mouseDetectionRadius && !escaping) {
+                escape();
+            }
+        });
+        
+        // Click para intentar atrapar
+        document.addEventListener('mousedown', (e) => {
+            const dx = e.clientX - snitchX;
+            const dy = e.clientY - snitchY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 80) {
+                catched = true;
+            }
+        });
+        
+        // soltar snitch
+        document.addEventListener('mouseup', () => {
+            catched = false;
+        });
+        
+        // Bucle principal
+        function update() {
+            if (catched) {
+                targetX = mouseX;
+                targetY = mouseY;
+                velocityX = 0;
+                velocityY = 0;
+                snitchX = mouseX;
+                snitchY = mouseY;
+                updateSnitchPosition();
+                requestAnimationFrame(update);
+                return;
+            }
+            // Movimiento de Perlin Noise simulado con movimiento aleatorio suave
+            const dx = targetX - snitchX;
+            const dy = targetY - snitchY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Si está cerca del objetivo, crear uno nuevo
+            if (distance < 50) {
+                velocityX = Math.random() * 10;
+                velocityY = Math.random() * 10;
+                if (Math.random() < 0.2) {
+                    createNewTarget();
+                }
+            } else {          
+                // Aplicar velocidad hacia el objetivo
+                const speed = escaping ? escapeSpeed : normalSpeed;
+                velocityX = velocityX * 0.95 + dx * 0.05 * speed / 30;
+                velocityY = velocityY * 0.95 + dy * 0.05 * speed / 30;
+                
+                // Limitar velocidad
+                const currentSpeed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+                if (currentSpeed > maxSpeed) {
+                    velocityX = (velocityX / currentSpeed) * maxSpeed;
+                    velocityY = (velocityY / currentSpeed) * maxSpeed;
+                }
+            }
+                
+                // Actualizar posición
+            snitchX += velocityX;
+            snitchY += velocityY;
+            
+            // Mantener dentro de los límites
+            if (snitchX < 20) snitchX = 20;
+            if (snitchX > window.innerWidth - 20) snitchX = window.innerWidth - 20;
+            if (snitchY < 20) snitchY = 20;
+            if (snitchY > window.innerHeight - 20) snitchY = window.innerHeight - 20;
+            
+            // Actualizar posición visual
+            updateSnitchPosition();
+            
+            // Crear y gestionar estela
+            if (Math.random() < 0.1 && (Math.abs(velocityX) > 1 || Math.abs(velocityY) > 1)) {
+                createTrail();
+            }
+            
+            // Finalizar el escape después de un tiempo
+            if (escaping) {
+                setTimeout(() => {
+                    escaping = false;
+                }, 500);
+            }
+            
+            requestAnimationFrame(update);
+        }
+        
+        // Crear un nuevo objetivo aleatorio
+        function createNewTarget() {
+            // Objetivo aleatorio dentro de la pantalla
+            targetX = Math.random() * (window.innerWidth - 100) + 50;
+            targetY = Math.random() * (window.innerHeight - 100) + 50;
+            
+            // Pequeña pausa y vibración
+            if (Math.random() < 0.1) {
+                velocityX =1;
+                velocityY =1;
+            }
+        }
+        
+        // Escape al detectar el ratón cerca
+        function escape() {
+            if (escaping) return;
+            
+            escaping = true;
+            
+            // Calcular dirección de escape (alejarse del ratón)
+            const dx = snitchX - mouseX;
+            const dy = snitchY - mouseY;
+            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Establecer nuevo objetivo lejos del ratón
+            targetX = snitchX + (dx / distance) * escapeDistance;
+            targetY = snitchY + (dy / distance) * escapeDistance;
+            
+            // Asegurarse de que está dentro de los límites
+            targetX = Math.max(50, Math.min(window.innerWidth - 50, targetX));
+            targetY = Math.max(50, Math.min(window.innerHeight - 50, targetY));
+            
+            // Impulso inmediato para escapar
+            velocityX += (dx / distance) * escapeSpeed * 0.5;
+            velocityY += (dy / distance) * escapeSpeed * 0.5;
+        }
+        
+        // Actualizar la posición visual de la Snitch
+        function updateSnitchPosition() {
+            snitchContainer.style.left = snitchX + 'px';
+            snitchContainer.style.top = snitchY + 'px';
+        }
+        
+        // Obtener distancia al ratón
+        function getDistanceToMouse() {
+            const dx = mouseX - snitchX;
+            const dy = mouseY - snitchY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        // Crear efecto de estela
+        function createTrail() {
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = (snitchX - 4) + 'px';
+            trail.style.top = (snitchY - 4) + 'px';
+            document.body.appendChild(trail);
+            
+            // Desvanecer y eliminar
+            setTimeout(() => {
+                trail.style.opacity = '0';
+                setTimeout(() => {
+                    trail.remove();
+                }, 800);
+            }, 200);
+            
+            trailElements.push(trail);
+            
+            // Limitar el número de elementos de estela
+            if (trailElements.length > 30) {
+                const oldTrail = trailElements.shift();
+                oldTrail.remove();
+            }
+        }
+        
+        // Manejar cambios de tamaño de ventana
+        window.addEventListener('resize', () => {
+            targetX = Math.min(targetX, window.innerWidth - 50);
+            targetY = Math.min(targetY, window.innerHeight - 50);
+        });
+        
+        // Iniciar el bucle
+        update();
+    </script>
+</body>
+</html>
